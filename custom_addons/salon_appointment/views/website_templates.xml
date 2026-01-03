@@ -1,0 +1,91 @@
+<odoo>
+    <data>
+        <template id="appointment_form" name="Book Appointment">
+            <t t-call="website.layout">
+                <div class="container mt-5 mb-5">
+                    <div class="row">
+                        <div class="col-lg-8 offset-lg-2">
+                            <h1 class="text-center mb-4">Book an Appointment</h1>
+                            
+                            <div t-if="error" class="alert alert-danger" role="alert">
+                                <t t-esc="error"/>
+                            </div>
+
+                            <form action="/appointment/submit" method="post">
+                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Your Name</label>
+                                    <input type="text" class="form-control" name="name" required="required"/>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="phone" class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" name="phone" required="required"/>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="service_product_id" class="form-label">Service</label>
+                                    <select name="service_product_id" class="form-select" required="required">
+                                        <option value="">Select a Service...</option>
+                                        <t t-foreach="services" t-as="service">
+                                            <option t-att-value="service.id">
+                                                <t t-esc="service.name"/> 
+                                                (<t t-esc="service.list_price" t-options="{'widget': 'monetary', 'display_currency': service.currency_id}"/>)
+                                            </option>
+                                        </t>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="barber_user_id" class="form-label">Barber / Stylist</label>
+                                    <select name="barber_user_id" class="form-select" required="required">
+                                        <option value="">Select a Barber...</option>
+                                        <t t-foreach="barbers" t-as="barber">
+                                            <option t-att-value="barber.id"><t t-esc="barber.name"/></option>
+                                        </t>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="start_dt" class="form-label">Preferred Date &amp; Time</label>
+                                    <input type="datetime-local" class="form-control" name="start_dt" required="required"/>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="notes" class="form-label">Notes (Optional)</label>
+                                    <textarea class="form-control" name="notes" rows="3"></textarea>
+                                </div>
+
+                                <div class="text-center">
+                                    <button type="submit" class="btn btn-primary btn-lg">Book Now</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </template>
+
+        <template id="appointment_thanks" name="Appointment Confirmed">
+            <t t-call="website.layout">
+                <div class="container mt-5 text-center">
+                    <h1 class="text-success">Thank You!</h1>
+                    <p class="lead">Your appointment request has been received.</p>
+                    <div class="card mt-4 mx-auto" style="max-width: 500px;">
+                        <div class="card-body">
+                            <h5 class="card-title">Appointment Details</h5>
+                            <p class="card-text">
+                                <strong>Reference:</strong> <t t-esc="appointment.name"/><br/>
+                                <strong>Service:</strong> <t t-esc="appointment.service_product_id.name"/><br/>
+                                <strong>Barber:</strong> <t t-esc="appointment.barber_user_id.name"/><br/>
+                                <strong>Time:</strong> <span t-field="appointment.start_dt" t-options="{'widget': 'datetime'}"/><br/>
+                            </p>
+                            <a href="/" class="btn btn-primary">Return to Home</a>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </template>
+    </data>
+</odoo>

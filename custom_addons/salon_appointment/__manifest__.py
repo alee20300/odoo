@@ -1,0 +1,19 @@
+{
+    "name": "Salon Appointment (Community)",
+    "version": "19.0.1.0.0",
+    "category": "Services",
+    "summary": "Salon appointment management for Odoo Community",
+    "license": "AGPL-3",
+    "author": "Custom",
+    "depends": ["base", "product", "contacts", "mail", "website"],
+    "data": [
+        "security/security.xml",
+        "security/ir.model.access.csv",
+        "data/sequence.xml",
+        "views/salon_appointment_views.xml",
+        "views/website_templates.xml",
+        "views/menu.xml",
+    ],
+    "application": True,
+    "installable": True,
+}

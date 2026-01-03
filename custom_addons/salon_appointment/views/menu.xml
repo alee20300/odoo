@@ -1,0 +1,13 @@
+<odoo>
+  <data>
+
+    <menuitem id="salon_root_menu" name="Salon" sequence="10"/>
+
+    <menuitem id="salon_menu_appointments"
+              name="Appointments"
+              parent="salon_root_menu"
+              action="salon_appointment_action"
+              sequence="10"/>
+
+  </data>
+</odoo>

@@ -1,0 +1,14 @@
+<odoo>
+  <data>
+
+    <record id="group_salon_user" model="res.groups">
+      <field name="name">Salon User</field>
+    </record>
+
+    <record id="group_salon_manager" model="res.groups">
+      <field name="name">Salon Manager</field>
+      <field name="implied_ids" eval="[(4, ref('salon_appointment.group_salon_user'))]"/>
+    </record>
+
+  </data>
+</odoo>

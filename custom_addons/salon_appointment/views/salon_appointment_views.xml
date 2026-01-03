@@ -1,0 +1,126 @@
+<odoo>
+  <data>
+
+    <!-- ACTION -->
+    <record id="salon_appointment_action" model="ir.actions.act_window">
+      <field name="name">Appointments</field>
+      <field name="res_model">salon.appointment</field>
+      <field name="view_mode">list,form,kanban</field>
+      <field name="context">{}</field>
+    </record>
+
+    <!-- LIST (Odoo 19 uses <list>, not <tree>) -->
+    <record id="salon_appointment_list" model="ir.ui.view">
+      <field name="name">salon.appointment.list</field>
+      <field name="model">salon.appointment</field>
+      <field name="arch" type="xml">
+        <list string="Appointments" default_order="start_dt asc">
+          <field name="name"/>
+          <field name="start_dt"/>
+          <field name="end_dt"/>
+          <field name="barber_user_id"/>
+          <field name="service_product_id"/>
+          <field name="partner_id"/>
+          <field name="phone"/>
+          <field name="state"/>
+          <field name="source"/>
+        </list>
+      </field>
+    </record>
+
+    <!-- FORM -->
+    <record id="salon_appointment_form" model="ir.ui.view">
+      <field name="name">salon.appointment.form</field>
+      <field name="model">salon.appointment</field>
+      <field name="arch" type="xml">
+        <form string="Appointment">
+          <header>
+            <button name="action_confirm" type="object" string="Confirm"
+                    class="btn-primary" invisible="state not in ('requested')"/>
+            <button name="action_in_service" type="object" string="In Service"
+                    class="btn-secondary" invisible="state not in ('confirmed')"/>
+            <button name="action_done" type="object" string="Complete"
+                    class="btn-primary" invisible="state not in ('in_service','confirmed')"/>
+            <button name="action_no_show" type="object" string="No Show"
+                    class="btn-secondary" invisible="state in ('done','cancelled','no_show')"/>
+            <button name="action_cancel" type="object" string="Cancel"
+                    class="btn-secondary" invisible="state in ('done','cancelled')"/>
+            <field name="state" widget="statusbar"
+                   statusbar_visible="requested,confirmed,in_service,done,cancelled,no_show"/>
+          </header>
+
+          <sheet>
+            <div class="oe_title">
+              <h1><field name="name" readonly="1"/></h1>
+            </div>
+
+            <group>
+              <group string="Customer">
+                <field name="partner_id"/>
+                <field name="phone"/>
+              </group>
+
+              <group string="Service">
+                <field name="service_product_id"/>
+                <field name="price" readonly="1"/>
+                <field name="source"/>
+              </group>
+            </group>
+
+            <group>
+              <group string="Schedule">
+                <field name="barber_user_id"/>
+                <field name="start_dt"/>
+                <field name="end_dt" readonly="1"/>
+              </group>
+
+              <group string="Timing Rules">
+                <field name="duration_min"/>
+                <field name="buffer_before_min"/>
+                <field name="buffer_after_min"/>
+              </group>
+            </group>
+
+            <notebook>
+              <page string="Notes">
+                <field name="notes"/>
+              </page>
+              <page string="Chatter">
+                <field name="message_follower_ids" widget="mail_followers"/>
+                <field name="message_ids" widget="mail_thread"/>
+              </page>
+            </notebook>
+          </sheet>
+        </form>
+      </field>
+    </record>
+
+    <!-- KANBAN -->
+    <record id="salon_appointment_kanban" model="ir.ui.view">
+      <field name="name">salon.appointment.kanban</field>
+      <field name="model">salon.appointment</field>
+      <field name="arch" type="xml">
+        <kanban default_group_by="barber_user_id">
+          <field name="name"/>
+          <field name="start_dt"/>
+          <field name="partner_id"/>
+          <field name="service_product_id"/>
+          <field name="state"/>
+
+          <templates>
+            <t t-name="kanban-box">
+              <div class="oe_kanban_card">
+                <strong><field name="name"/></strong>
+                <div><field name="start_dt"/></div>
+                <div><field name="partner_id"/></div>
+                <div><field name="service_product_id"/></div>
+                <div><field name="state"/></div>
+              </div>
+            </t>
+          </templates>
+        </kanban>
+      </field>
+    </record>
+
+  </data>
+</odoo>
