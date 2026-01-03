@@ -22,11 +22,12 @@ class SalonAppointment(models.Model):
         tracking=True,
     )
 
-    barber_user_id = fields.Many2one(
-        "res.users",
+    employee_id = fields.Many2one(
+        "hr.employee",
         string="Barber/Stylist",
         required=True,
         tracking=True,
+        domain="[('job_id.is_salon_role', '=', True)]"
     )
 
     start_dt = fields.Datetime(string="Start", required=True, tracking=True)
@@ -87,6 +88,11 @@ class SalonAppointment(models.Model):
         for rec in self:
             rec.price = rec.service_product_id.lst_price if rec.service_product_id else 0.0
 
+    @api.onchange("service_product_id")
+    def _onchange_service_product_id(self):
+        if self.service_product_id:
+            self.duration_min = int(self.service_product_id.service_duration * 60)
+
     # ---------- Create ----------
     @api.model_create_multi
     def create(self, vals_list):
@@ -94,6 +100,13 @@ class SalonAppointment(models.Model):
         for vals in vals_list:
             if vals.get("name", "New") == "New":
                 vals["name"] = seq.next_by_code("salon.appointment") or _("New")
+            
+            # Auto-fill duration if not provided
+            if "service_product_id" in vals and "duration_min" not in vals:
+                product = self.env["product.product"].browse(vals["service_product_id"])
+                if product:
+                    vals["duration_min"] = int(product.service_duration * 60)
+
         return super().create(vals_list)
 
     # ---------- Constraints ----------
@@ -115,7 +128,7 @@ class SalonAppointment(models.Model):
             if ptype and ptype != "service":
                 raise ValidationError(_("Selected product must be a Service type."))
 
-    @api.constrains("barber_user_id", "start_dt", "end_dt", "state")
+    @api.constrains("employee_id", "start_dt", "end_dt", "state")
     def _check_no_overlap(self):
         """
         Prevent overlapping appointments for the same barber when state is confirmed/in_service.
@@ -123,7 +136,7 @@ class SalonAppointment(models.Model):
         """
         active_states = ("confirmed", "in_service")
         for rec in self:
-            if not rec.barber_user_id or not rec.start_dt or not rec.end_dt:
+            if not rec.employee_id or not rec.start_dt or not rec.end_dt:
                 continue
             if rec.state not in active_states:
                 continue
@@ -131,7 +144,7 @@ class SalonAppointment(models.Model):
             # overlap condition: start < other_end AND end > other_start
             domain = [
                 ("id", "!=", rec.id),
-                ("barber_user_id", "=", rec.barber_user_id.id),
+                ("employee_id", "=", rec.employee_id.id),
                 ("state", "in", list(active_states)),
                 ("start_dt", "<", rec.end_dt),
                 ("end_dt", ">", rec.start_dt),

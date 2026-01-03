@@ -11,9 +11,8 @@ class WebsiteSalonAppointment(http.Controller):
         """
         # Fetch available services and barbers
         services = request.env['product.product'].sudo().search([('type', '=', 'service')])
-        # Barbers are users who are not public/portal users (simplified logic)
-        # Adjust domain as needed for your specific setup
-        barbers = request.env['res.users'].sudo().search([('share', '=', False)])
+        # Barbers are employees with 'is_salon_role' job
+        barbers = request.env['hr.employee'].sudo().search([('job_id.is_salon_role', '=', True)])
         
         values = {
             'services': services,
@@ -27,7 +26,7 @@ class WebsiteSalonAppointment(http.Controller):
         Handle form submission.
         """
         service_id = int(post.get('service_product_id'))
-        barber_id = int(post.get('barber_user_id'))
+        employee_id = int(post.get('employee_id'))
         start_dt_str = post.get('start_dt') # Expecting format '2023-10-27T10:00' from datetime-local input
         name = post.get('name')
         phone = post.get('phone')
@@ -51,7 +50,7 @@ class WebsiteSalonAppointment(http.Controller):
             return request.render("salon_appointment.appointment_form", {
                 'error': "Invalid date format.",
                 'services': request.env['product.product'].sudo().search([('type', '=', 'service')]),
-                'barbers': request.env['res.users'].sudo().search([('share', '=', False)]),
+                'barbers': request.env['hr.employee'].sudo().search([('job_id.is_salon_role', '=', True)]),
             })
 
         # Create Appointment
@@ -59,7 +58,7 @@ class WebsiteSalonAppointment(http.Controller):
         appointment = Appointment.create({
             'partner_id': partner.id,
             'service_product_id': service_id,
-            'barber_user_id': barber_id,
+            'employee_id': employee_id,
             'start_dt': start_dt,
             'notes': notes,
             'source': 'website',

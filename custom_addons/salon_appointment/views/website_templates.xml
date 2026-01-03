@@ -38,8 +38,8 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="barber_user_id" class="form-label">Barber / Stylist</label>
-                                    <select name="barber_user_id" class="form-select" required="required">
+                                    <label for="employee_id" class="form-label">Barber / Stylist</label>
+                                    <select name="employee_id" class="form-select" required="required">
                                         <option value="">Select a Barber...</option>
                                         <t t-foreach="barbers" t-as="barber">
                                             <option t-att-value="barber.id"><t t-esc="barber.name"/></option>
@@ -78,7 +78,7 @@
                             <p class="card-text">
                                 <strong>Reference:</strong> <t t-esc="appointment.name"/><br/>
                                 <strong>Service:</strong> <t t-esc="appointment.service_product_id.name"/><br/>
-                                <strong>Barber:</strong> <t t-esc="appointment.barber_user_id.name"/><br/>
+                                <strong>Barber:</strong> <t t-esc="appointment.employee_id.name"/><br/>
                                 <strong>Time:</strong> <span t-field="appointment.start_dt" t-options="{'widget': 'datetime'}"/><br/>
                             </p>
                             <a href="/" class="btn btn-primary">Return to Home</a>

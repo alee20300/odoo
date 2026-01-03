@@ -18,13 +18,28 @@
           <field name="name"/>
           <field name="start_dt"/>
           <field name="end_dt"/>
-          <field name="barber_user_id"/>
+          <field name="employee_id"/>
           <field name="service_product_id"/>
           <field name="partner_id"/>
           <field name="phone"/>
           <field name="state"/>
           <field name="source"/>
         </list>
+      </field>
+    </record>
+
+    <!-- SEARCH -->
+    <record id="salon_appointment_search" model="ir.ui.view">
+      <field name="name">salon.appointment.search</field>
+      <field name="model">salon.appointment</field>
+      <field name="arch" type="xml">
+        <search string="Appointments">
+          <field name="name"/>
+          <field name="partner_id"/>
+          <field name="employee_id"/>
+          <field name="service_product_id"/>
+          <filter string="Confirmed" name="confirmed" domain="[('state', '=', 'confirmed')]"/>
+        </search>
       </field>
     </record>
 
@@ -69,7 +84,7 @@
 
             <group>
               <group string="Schedule">
-                <field name="barber_user_id"/>
+                <field name="employee_id"/>
                 <field name="start_dt"/>
                 <field name="end_dt" readonly="1"/>
               </group>
@@ -100,7 +115,7 @@
       <field name="name">salon.appointment.kanban</field>
       <field name="model">salon.appointment</field>
       <field name="arch" type="xml">
-        <kanban default_group_by="barber_user_id">
+        <kanban default_group_by="employee_id">
           <field name="name"/>
           <field name="start_dt"/>
           <field name="partner_id"/>
