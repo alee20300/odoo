@@ -20,7 +20,7 @@ class WebsiteSalonAppointment(http.Controller):
         }
         return request.render("salon_appointment.appointment_form", values)
 
-    @http.route(['/appointment/json/slots'], type='json', auth="public", website=True)
+    @http.route(['/appointment/json/slots'], type='jsonrpc', auth="public", website=True)
     def appointment_slots(self, employee_id, service_product_id, date_str):
         """
         Return available time slots for the given barber and service on a specific date.
