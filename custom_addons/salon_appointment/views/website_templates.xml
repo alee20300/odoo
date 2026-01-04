@@ -2,67 +2,365 @@
     <data>
         <template id="appointment_form" name="Book Appointment">
             <t t-call="website.layout">
-                <div class="container mt-5 mb-5">
-                    <div class="row">
-                        <div class="col-lg-8 offset-lg-2">
-                            <h1 class="text-center mb-4">Book an Appointment</h1>
-                            
-                            <div t-if="error" class="alert alert-danger" role="alert">
-                                <t t-esc="error"/>
+                <div id="salon_booking_app" class="salon-booking-wrapper">
+                    <style>
+                        /* --- THEME COLORS --- */
+                        :root {
+                            --salon-bg: #0F172A; /* Midnight Blue */
+                            --salon-card: #1E293B; /* Slate 800 */
+                            --salon-gold: #D4AF37; /* Gold */
+                            --salon-text: #F8FAFC;
+                            --salon-muted: #94A3B8;
+                        }
+
+                        .salon-booking-wrapper {
+                            background-color: var(--salon-bg);
+                            color: var(--salon-text);
+                            min-height: 80vh;
+                            padding: 2rem 0;
+                            font-family: 'Inter', sans-serif;
+                        }
+
+                        /* --- WIZARD STEPS --- */
+                        .wizard-progress {
+                            display: flex;
+                            justify-content: center;
+                            margin-bottom: 2rem;
+                        }
+                        .step-dot {
+                            width: 12px;
+                            height: 12px;
+                            border-radius: 50%;
+                            background-color: var(--salon-card);
+                            margin: 0 10px;
+                            transition: all 0.3s;
+                            border: 1px solid var(--salon-muted);
+                        }
+                        .step-dot.active {
+                            background-color: var(--salon-gold);
+                            box-shadow: 0 0 10px var(--salon-gold);
+                            border-color: var(--salon-gold);
+                        }
+
+                        /* --- CARDS --- */
+                        .selection-card {
+                            background: var(--salon-card);
+                            border: 1px solid #334155;
+                            border-radius: 12px;
+                            padding: 1.5rem;
+                            cursor: pointer;
+                            transition: transform 0.2s, border-color 0.2s;
+                            height: 100%;
+                            text-align: center;
+                        }
+                        .selection-card:hover {
+                            transform: translateY(-5px);
+                            border-color: var(--salon-gold);
+                        }
+                        .selection-card.selected {
+                            border-color: var(--salon-gold);
+                            background: rgba(212, 175, 55, 0.1);
+                            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                        }
+                        
+                        .card-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--salon-text); }
+                        .card-price { color: var(--salon-gold); font-size: 1.1rem; font-weight: 700; }
+                        .card-duration { color: var(--salon-muted); font-size: 0.9rem; }
+
+                        /* --- CALENDAR SLOTS --- */
+                        .slot-grid {
+                            display: grid;
+                            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                            gap: 10px;
+                            margin-top: 1rem;
+                        }
+                        .time-slot {
+                            background: var(--salon-card);
+                            border: 1px solid #334155;
+                            padding: 10px;
+                            border-radius: 8px;
+                            text-align: center;
+                            cursor: pointer;
+                            color: var(--salon-text);
+                        }
+                        .time-slot:hover {
+                            border-color: var(--salon-gold);
+                        }
+                        .time-slot.selected {
+                            background: var(--salon-gold);
+                            color: #000;
+                            border-color: var(--salon-gold);
+                            font-weight: bold;
+                        }
+
+                        /* --- FORM INPUTS --- */
+                        .salon-input {
+                            background: var(--salon-card);
+                            border: 1px solid #334155;
+                            color: var(--salon-text);
+                            border-radius: 8px;
+                            padding: 12px;
+                            width: 100%;
+                            margin-bottom: 1rem;
+                        }
+                        .salon-input:focus {
+                            outline: none;
+                            border-color: var(--salon-gold);
+                        }
+
+                        .btn-gold {
+                            background: var(--salon-gold);
+                            color: #000;
+                            padding: 12px 30px;
+                            border-radius: 30px;
+                            font-weight: 700;
+                            border: none;
+                            width: 100%;
+                            transition: opacity 0.2s;
+                        }
+                        .btn-gold:hover { opacity: 0.9; }
+                        
+                        .hidden-step { display: none; }
+                    </style>
+
+                    <div class="container">
+                        <div class="text-center mb-5">
+                            <h1 style="font-weight: 800; letter-spacing: -1px;">Book Your Experience</h1>
+                            <p class="text-white-50">Select a service to begin</p>
+                        </div>
+                        
+                        <!-- Progress -->
+                        <div class="wizard-progress">
+                            <div class="step-dot active" id="dot-1"></div>
+                            <div class="step-dot" id="dot-2"></div>
+                            <div class="step-dot" id="dot-3"></div>
+                            <div class="step-dot" id="dot-4"></div>
+                        </div>
+
+                        <form action="/appointment/submit" method="post" id="booking-form">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <input type="hidden" name="service_product_id" id="input_service"/>
+                            <input type="hidden" name="employee_id" id="input_employee"/>
+                            <input type="hidden" name="start_dt" id="input_start_dt"/>
+
+                            <!-- STEP 1: SERVICE -->
+                            <div id="step-1" class="wizard-step">
+                                <div class="row g-4">
+                                    <t t-foreach="services" t-as="service">
+                                        <div class="col-md-4 col-sm-6">
+                                            <div class="selection-card" t-att-onclick="'selectService(' + str(service.id) + ')'" t-att-id="'card-service-' + str(service.id)">
+                                                <t t-if="service.image_128">
+                                                    <span t-field="service.image_128" t-options="{'widget': 'image', 'class': 'mb-3 rounded', 'style': 'width: 80px; height: 80px; object-fit: cover;'}"/>
+                                                </t>
+                                                <t t-else="">
+                                                    <i class="fa fa-scissors fa-3x mb-3" style="color: var(--salon-gold)"></i>
+                                                </t>
+                                                <div class="card-title"><t t-esc="service.name"/></div>
+                                                <div class="card-price">
+                                                    <t t-esc="service.list_price" t-options="{'widget': 'monetary', 'display_currency': service.currency_id}"/>
+                                                </div>
+                                                <div class="card-duration mt-2">
+                                                    <i class="fa fa-clock-o"></i> <t t-esc="int(service.service_duration * 60)"/> min
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </div>
                             </div>
 
-                            <form action="/appointment/submit" method="post">
-                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <!-- STEP 2: BARBER -->
+                            <div id="step-2" class="wizard-step hidden-step">
+                                <h3 class="text-center mb-4">Choose your Stylist</h3>
+                                <div class="row g-4 justify-content-center">
+                                    <t t-foreach="barbers" t-as="barber">
+                                        <div class="col-md-3 col-sm-6">
+                                            <div class="selection-card" t-att-onclick="'selectBarber(' + str(barber.id) + ')'" t-att-id="'card-barber-' + str(barber.id)">
+                                                <t t-if="barber.image_128">
+                                                    <span t-field="barber.image_128" t-options="{'widget': 'image', 'class': 'mb-3 rounded-circle', 'style': 'width: 80px; height: 80px; object-fit: cover; border: 2px solid var(--salon-gold);'}"/>
+                                                </t>
+                                                <t t-else="">
+                                                    <i class="fa fa-user-circle-o fa-3x mb-3" style="color: var(--salon-gold)"></i>
+                                                </t>
+                                                <div class="card-title"><t t-esc="barber.name"/></div>
+                                                <div class="card-duration"><t t-esc="barber.job_title or 'Stylist'"/></div>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </div>
+                                <div class="text-center mt-4">
+                                    <button type="button" class="btn btn-outline-light" onclick="goToStep(1)">Back</button>
+                                </div>
+                            </div>
+
+                            <!-- STEP 3: DATE & TIME -->
+                            <div id="step-3" class="wizard-step hidden-step">
+                                <h3 class="text-center mb-4">Select Time</h3>
                                 
-                                <div class="mb-3">
-                                    <label for="name" class="form-label">Your Name</label>
-                                    <input type="text" class="form-control" name="name" required="required"/>
+                                <div class="row justify-content-center">
+                                    <div class="col-md-6">
+                                        <input type="date" class="salon-input" id="date-picker" onchange="fetchSlots()"/>
+                                        <div id="slots-container" class="slot-grid">
+                                            <!-- Slots loaded via JS -->
+                                        </div>
+                                        <div id="loading-slots" class="text-center mt-3" style="display:none; color: var(--salon-gold)">
+                                            <i class="fa fa-spinner fa-spin"></i> Finding availability...
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div class="mb-3">
-                                    <label for="phone" class="form-label">Phone Number</label>
-                                    <input type="tel" class="form-control" name="phone" required="required"/>
+                                <div class="text-center mt-5">
+                                    <button type="button" class="btn btn-outline-light me-2" onclick="goToStep(2)">Back</button>
                                 </div>
+                            </div>
 
-                                <div class="mb-3">
-                                    <label for="service_product_id" class="form-label">Service</label>
-                                    <select name="service_product_id" class="form-select" required="required">
-                                        <option value="">Select a Service...</option>
-                                        <t t-foreach="services" t-as="service">
-                                            <option t-att-value="service.id">
-                                                <t t-esc="service.name"/> 
-                                                (<t t-esc="service.list_price" t-options="{'widget': 'monetary', 'display_currency': service.currency_id}"/>)
-                                            </option>
-                                        </t>
-                                    </select>
+                            <!-- STEP 4: INFO -->
+                            <div id="step-4" class="wizard-step hidden-step">
+                                <h3 class="text-center mb-4">Your Details</h3>
+                                <div class="row justify-content-center">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label>Full Name</label>
+                                            <input type="text" class="salon-input" name="name" required="required" placeholder="John Doe"/>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label>Phone Number</label>
+                                            <input type="tel" class="salon-input" name="phone" required="required" placeholder="+1234567890"/>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label>Notes</label>
+                                            <textarea class="salon-input" name="notes" rows="3" placeholder="Any special requests?"></textarea>
+                                        </div>
+                                        
+                                        <button type="submit" class="btn-gold mt-3">Confirm Booking</button>
+                                        <div class="text-center mt-3">
+                                            <button type="button" class="btn btn-link text-white-50" onclick="goToStep(3)">Back</button>
+                                        </div>
+                                    </div>
                                 </div>
+                            </div>
 
-                                <div class="mb-3">
-                                    <label for="employee_id" class="form-label">Barber / Stylist</label>
-                                    <select name="employee_id" class="form-select" required="required">
-                                        <option value="">Select a Barber...</option>
-                                        <t t-foreach="barbers" t-as="barber">
-                                            <option t-att-value="barber.id"><t t-esc="barber.name"/></option>
-                                        </t>
-                                    </select>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="start_dt" class="form-label">Preferred Date &amp; Time</label>
-                                    <input type="datetime-local" class="form-control" name="start_dt" required="required"/>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="notes" class="form-label">Notes (Optional)</label>
-                                    <textarea class="form-control" name="notes" rows="3"></textarea>
-                                </div>
-
-                                <div class="text-center">
-                                    <button type="submit" class="btn btn-primary btn-lg">Book Now</button>
-                                </div>
-                            </form>
-                        </div>
+                        </form>
                     </div>
+
+                    <script>
+                        let currentStep = 1;
+                        let bookingData = {
+                            serviceId: null,
+                            employeeId: null,
+                            date: new Date().toISOString().split('T')[0],
+                            time: null
+                        };
+
+                        // Initialize Date Picker to Today
+                        document.getElementById('date-picker').value = bookingData.date;
+
+                        function goToStep(step) {
+                            // Validate before moving forward
+                            if (step > currentStep) {
+                                if (currentStep === 1 &amp;&amp; !bookingData.serviceId) return alert('Please select a service');
+                                if (currentStep === 2 &amp;&amp; !bookingData.employeeId) return alert('Please select a barber');
+                                if (currentStep === 3 &amp;&amp; !bookingData.time) return alert('Please select a time slot');
+                            }
+
+                            // Update UI
+                            document.querySelectorAll('.wizard-step').forEach(el => el.classList.add('hidden-step'));
+                            document.getElementById('step-' + step).classList.remove('hidden-step');
+                            
+                            // Update dots
+                            document.querySelectorAll('.step-dot').forEach((el, idx) => {
+                                el.classList.toggle('active', idx &lt; step);
+                            });
+
+                            currentStep = step;
+                            
+                            if (step === 3) fetchSlots();
+                        }
+
+                        function selectService(id) {
+                            bookingData.serviceId = id;
+                            document.getElementById('input_service').value = id;
+                            
+                            // Visual selection
+                            document.querySelectorAll('#step-1 .selection-card').forEach(el => el.classList.remove('selected'));
+                            document.getElementById('card-service-' + id).classList.add('selected');
+                            
+                            setTimeout(() => goToStep(2), 300);
+                        }
+
+                        function selectBarber(id) {
+                            bookingData.employeeId = id;
+                            document.getElementById('input_employee').value = id;
+                            
+                            document.querySelectorAll('#step-2 .selection-card').forEach(el => el.classList.remove('selected'));
+                            document.getElementById('card-barber-' + id).classList.add('selected');
+                            
+                            setTimeout(() => goToStep(3), 300);
+                        }
+
+                        async function fetchSlots() {
+                            const dateVal = document.getElementById('date-picker').value;
+                            if (!dateVal || !bookingData.employeeId) return;
+                            
+                            const container = document.getElementById('slots-container');
+                            const loader = document.getElementById('loading-slots');
+                            
+                            container.innerHTML = '';
+                            loader.style.display = 'block';
+
+                            try {
+                                const response = await fetch('/appointment/json/slots', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        jsonrpc: "2.0",
+                                        method: "call",
+                                        params: {
+                                            employee_id: bookingData.employeeId,
+                                            service_product_id: bookingData.serviceId,
+                                            date_str: dateVal
+                                        }
+                                    })
+                                });
+                                
+                                const result = await response.json();
+                                loader.style.display = 'none';
+                                
+                                if (result.result &amp;&amp; result.result.slots) {
+                                    const slots = result.result.slots;
+                                    if (slots.length === 0) {
+                                        container.innerHTML = '&lt;div class="text-center w-100 text-white-50"&gt;No available slots for this date.&lt;/div&gt;';
+                                        return;
+                                    }
+                                    
+                                    slots.forEach(slot => {
+                                        const div = document.createElement('div');
+                                        div.className = 'time-slot';
+                                        div.innerText = slot.display;
+                                        div.onclick = () => selectSlot(div, slot.datetime);
+                                        container.appendChild(div);
+                                    });
+                                } else {
+                                    console.error(result);
+                                    container.innerHTML = '&lt;div class="text-danger"&gt;Error loading slots&lt;/div&gt;';
+                                }
+                            } catch (e) {
+                                console.error(e);
+                                loader.style.display = 'none';
+                            }
+                        }
+
+                        function selectSlot(element, datetime) {
+                            bookingData.time = datetime;
+                            document.getElementById('input_start_dt').value = datetime;
+                            
+                            document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('selected'));
+                            element.classList.add('selected');
+                            
+                            setTimeout(() => goToStep(4), 300);
+                        }
+                    </script>
                 </div>
             </t>
         </template>
